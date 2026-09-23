@@ -105,10 +105,15 @@ class Player:
         self.score = 0
         self.pending_score = 0
         self.previous_opponents = []
+        self.pending_previous_opponent = None
 
     def add_pending_score(self):
         self.score += self.pending_score
         self.pending_score = 0
+
+    def add_pending_previous_opponent(self):
+        self.previous_opponents.append(self.pending_previous_opponent)
+        self.pending_previous_opponent = None
 
     def calculate_buchholz_score(self):
         buchholz_score = 0
@@ -170,6 +175,7 @@ class Stage:
         print("Writing results for stage.")
         for player in self.players:
             player.add_pending_score()
+            player.add_pending_previous_opponent()
         self.state = "finished"
         self.notify_ui()
 
@@ -206,8 +212,8 @@ class Match:
             self.player_2.pending_score = self.player_2_points
             self.player_1.pending_score = self.player_1_points
 
-        self.player_1.previous_opponents.append(self.player_2)
-        self.player_2.previous_opponents.append(self.player_1)
+        self.player_1.pending_previous_opponent = self.player_2
+        self.player_2.pending_previous_opponent = self.player_1
 
         self.state = "finished"
         self.notify_ui()
@@ -224,8 +230,8 @@ class Match:
         self.player_1.pending_score = self.player_1_points
         self.player_2.pending_score = self.player_1_points
 
-        self.player_1.previous_opponents.append(self.player_2)
-        self.player_2.previous_opponents.append(self.player_1)
+        self.player_1.pending_previous_opponent = self.player_2
+        self.player_2.pending_previous_opponent = self.player_1
 
         self.state = "finished"
         self.notify_ui()
@@ -243,8 +249,8 @@ class Match:
         self.player_1.pending_score = self.player_1_points
         self.player_2.pending_score = self.player_2_points
 
-        self.player_1.previous_opponents.remove(self.player_2)
-        self.player_2.previous_opponents.remove(self.player_1)
+        self.player_1.pending_previous_opponent = None
+        self.player_2.pending_previous_opponent = None
 
         self.state = "running"
         self.notify_ui()

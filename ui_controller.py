@@ -13,7 +13,7 @@ class Ui_controller:
     def setup_ui(self):
         # add root widget
         self.root = tk.Tk()
-        self.root.option_add("*Font", ("Helvetica", 24))
+        self.root.option_add("*Font", ("Helvetica", 20))
         self.root.attributes("-fullscreen", True)
         self.styles()
         self.root.grid_rowconfigure(0, weight=1)
@@ -21,13 +21,16 @@ class Ui_controller:
 
         # add full-sized container
         self.full_frame = ttk.Frame(self.root)
-        self.full_frame.grid(column=0, row=0, sticky="nsew")
+        self.full_frame.grid(column=0, row=0, sticky="nswe")
 
         self.update_ui()
 
     def styles(self):
         style = ttk.Style()
-        style.configure("TFrame", border=10, relief="solid")
+        style.configure("page.TFrame", relief="solid")
+        style.configure("stage.TFrame", relief="solid")
+        style.configure("match.TFrame", relief="solid")
+        style.configure("small.TButton", font=("Helvetica", 8))
 
     def update_ui(self):
         self.clear_frame(self.full_frame)
@@ -52,7 +55,7 @@ class Ui_controller:
         self.full_frame.grid_rowconfigure(0, weight=1)
         self.full_frame.grid_columnconfigure(0, weight=1)
 
-        center_frame = ttk.Frame(self.full_frame)
+        center_frame = ttk.Frame(self.full_frame, padding=20, style="page.TFrame")
         self.submit_players_widget(center_frame)
         center_frame.grid(row=0, column=0)
 
@@ -60,15 +63,15 @@ class Ui_controller:
         # add scoreboard container (left) and stages container (right)
         self.full_frame.grid_rowconfigure(0, weight=1)
         self.full_frame.grid_columnconfigure(0, weight=1)
-        self.full_frame.grid_columnconfigure(1, weight=1)
+        self.full_frame.grid_columnconfigure(1, weight=3)
 
-        left_frame = ttk.Frame(self.full_frame)
+        left_frame = ttk.Frame(self.full_frame, padding=20, style="page.TFrame")
         self.scoreboard_widget(left_frame)
-        left_frame.grid(row=0, column=0, sticky="nsew")
+        left_frame.grid(row=0, column=0, sticky="nswe")
 
-        right_frame = ttk.Frame(self.full_frame)
-        self.stages_widget(right_frame)
-        right_frame.grid(row=0, column=1, sticky="nsew")
+        right_frame = ttk.Frame(self.full_frame, padding=20, style="page.TFrame")
+        self.tournament_widget(right_frame)
+        right_frame.grid(row=0, column=1, sticky="nswe")
 
     def postgame_widget(self):
         self.ingame_widget()
@@ -79,21 +82,22 @@ class Ui_controller:
 
     def submit_players_widget(self, frame):
         # populate player submission frame
-        label = tk.Label(frame, text="Enter players:")
-        label.grid(column=0, row=0)
+        label = ttk.Label(frame, text="Enter players:", anchor="center")
+        label.grid(column=0, row=0, sticky="ew")
 
         text_box = tk.Text(frame, height=8, width=20)
         text_box.insert(
-            "1.0", "Olivia\nLisa\nEli\nThomas\nJakob\nLouis\nFranz\nMichi"
+            "1.0",
+            "Olivia\nLisa\nEli\nThomas\nJakob\nLouis\nFranz\nMichi\nBen\nToffer\nJack\nKyrillis",
         )  # dummy
-        text_box.grid(column=0, row=1)
+        text_box.grid(column=0, row=1, sticky="nswe")
 
         submit_button = tk.Button(
             frame,
             text="Submit",
             command=lambda: self.register_players(text_box),
         )
-        submit_button.grid(column=0, row=2)
+        submit_button.grid(column=0, row=2, sticky="ew")
 
     def register_players(self, text_box):
         raw_input = text_box.get("1.0", tk.END).strip()
@@ -106,55 +110,70 @@ class Ui_controller:
     ################################################################################################
 
     def scoreboard_widget(self, frame):
-        label = tk.Label(frame, text="Scoreboard")
-        label.grid(column=0, row=0)
+        frame.grid_columnconfigure(0, weight=1)
+        frame.grid_rowconfigure(0, weight=0)
+        frame.grid_rowconfigure(1, weight=0)
 
-        scoreboard_frame = ttk.Frame(frame)
+        label = ttk.Label(frame, text="Scoreboard", anchor="center")
+        label.grid(column=0, row=0, sticky="nswe")
+
+        scoreboard_frame = ttk.Frame(frame, padding=20)
         self.populate_scoreboard(scoreboard_frame)
-        scoreboard_frame.grid(column=0, row=1)
+        scoreboard_frame.grid(column=0, row=1, sticky="nswe")
 
     def populate_scoreboard(self, frame):
+        frame.grid_columnconfigure(0, weight=1)
+        frame.grid_columnconfigure(1, weight=1)
+        frame.grid_columnconfigure(2, weight=1)
+        frame.grid_columnconfigure(3, weight=1)
+        frame.grid_columnconfigure(4, weight=1)
+
         # header
-        header_rank = tk.Label(frame, text="Rank")
-        header_name = tk.Label(frame, text="Name")
-        header_score = tk.Label(frame, text="Score")
-        header_tiebreak = tk.Label(frame, text="Tie breaker")
+        header_rank = ttk.Label(frame, text="Rank", anchor="center")
+        header_name = ttk.Label(frame, text="Name", anchor="center")
+        header_score = ttk.Label(frame, text="Score", anchor="center")
+        header_tiebreak = ttk.Label(frame, text="Tie breaker", anchor="center")
         header_rank.grid(column=0, row=0)
         header_name.grid(column=1, row=0)
-        header_score.grid(column=2, row=0, columnspan=2)
+        header_score.grid(column=2, row=0)
+        # header_score.grid(column=2, row=0, columnspan=2)
         header_tiebreak.grid(column=4, row=0)
 
         # entries
         for i, player in enumerate(self.tournament.sort_players()):
-            player_rank = tk.Label(frame, text=i + 1)
-            player_label = tk.Label(frame, text=player.name)
-            player_score = tk.Label(frame, text=player.score)
-            if self.tournament.state != "postgame":
-                player_pending = tk.Label(frame, text=f"(+{player.pending_score})")
-            player_buchholz = tk.Label(frame, text=player.calculate_buchholz_score())
+            player_rank = ttk.Label(frame, text=i + 1, anchor="center")
+            player_label = ttk.Label(frame, text=player.name, anchor="center")
+            player_score = ttk.Label(frame, text=player.score, anchor="center")
+            # if self.tournament.state != "postgame":
+            #     player_pending = ttk.Label(frame, text=f"(+{player.pending_score})", anchor="center")
+            player_buchholz = ttk.Label(
+                frame, text=player.calculate_buchholz_score(), anchor="center"
+            )
             player_rank.grid(column=0, row=i + 1)
             player_label.grid(column=1, row=i + 1)
             player_score.grid(column=2, row=i + 1)
-            if self.tournament.state != "postgame":
-                player_pending.grid(column=3, row=i + 1)
+            # if self.tournament.state != "postgame":
+            #     player_pending.grid(column=3, row=i + 1)
             player_buchholz.grid(column=4, row=i + 1)
 
     ################################################################################################
     # STAGES
     ################################################################################################
 
-    def stages_widget(self, frame):
+    def tournament_widget(self, frame):
         frame.grid_columnconfigure(0, weight=1)
+        frame.grid_rowconfigure(0, weight=0)
+        frame.grid_rowconfigure(1, weight=1)
 
         header_frame = ttk.Frame(frame)
-        self.populate_stages_header(header_frame)
-        header_frame.grid(column=0, row=0, sticky="ew")
+        self.populate_tournament_header(header_frame)
+        header_frame.grid(column=0, row=0, sticky="we")
 
-        content_frame = ttk.Frame(frame)
-        self.populate_stages_frame(content_frame)
-        content_frame.grid(column=0, row=1, sticky="nsew")
+        outer_content_frame, content_frame = scrollableFrame(frame)
+        self.populate_tournament_content(content_frame)
+        outer_content_frame.grid(column=0, row=1, sticky="nswe")
 
-    def populate_stages_header(self, frame):
+    def populate_tournament_header(self, frame):
         if self.tournament.state != "ingame":
             return
 
@@ -173,89 +192,144 @@ class Ui_controller:
         )
         advance_stage_button.grid(column=0, row=0)
 
-    def populate_stages_frame(self, frame):
+    def populate_tournament_content(self, frame):
         frame.grid_columnconfigure(0, weight=1)
+        frame.grid_rowconfigure(0, weight=1)
 
-        stages = self.tournament.stages
-        for i, stage in enumerate(stages):
-            stage_frame = ttk.Frame(frame)
-            stage_frame.grid_propagate(False)
-            stage_frame.config(width=1000, height=200)
-            self.populate_stage_frame(stage_frame, stage)
-            stage_frame.grid(column=0, row=i + 1, sticky="ew", padx=25, pady=25)
+        stages_frame = ttk.Frame(frame, padding=20)
+        stages_frame.grid_columnconfigure(0, weight=1)
 
-    def populate_stage_frame(self, frame, stage):
-        stage_label = tk.Label(frame, text=f"Stage {stage.stage_num}")
+        for i, stage in enumerate(self.tournament.stages):
+            stages_frame.grid_rowconfigure(i, minsize=175, weight=1)
+            stage_frame = ttk.Frame(stages_frame, padding=10, style="stage.TFrame")
+            self.populate_stage_content(stage_frame, stage)
+            stage_frame.grid(column=0, row=i, sticky="nswe", padx=10, pady=10)
+
+        stages_frame.grid(column=0, row=0, sticky="nswe")
+
+    def populate_stage_content(self, frame, stage):
+        frame.grid_columnconfigure(0, weight=1)
+        frame.grid_rowconfigure(0, weight=0)
+        stage_label = ttk.Label(frame, text=f"Stage {stage.stage_num}", anchor="center")
         i = 0
         for i, match in enumerate(stage.matches):
-            frame.grid_columnconfigure(i, weight=1)
-            match_frame = ttk.Frame(frame)
-            match_frame.grid_propagate(False)
-            match_frame.config(width=200, height=150)
-            self.populate_match_frame(match_frame, stage, match)
-            match_frame.grid(row=1, column=i, sticky="nsew", padx=10, pady=10)
-        stage_label.grid(row=0, column=0, columnspan=i + 1, sticky="nsew")
+            frame.grid_columnconfigure(i, weight=1, uniform="a")
+            frame.grid_rowconfigure(1, minsize=100, weight=1)
+            match_frame = ttk.Frame(frame, padding=5, style="match.TFrame")
+            self.populate_match_frame(match_frame, match)
+            match_frame.grid(row=1, column=i, sticky="nswe", padx=5, pady=5)
+        stage_label.grid(row=0, column=0, columnspan=i + 1, sticky="we")
 
-    def populate_match_frame(self, frame, stage, match):
-        if stage.state == "finished":
-            frame.grid_rowconfigure(0, weight=1)
-            frame.grid_rowconfigure(1, weight=1)
+    def populate_match_frame(self, frame, match):
+        # P1   S1
+        # BUTTONS
+        # P2   S2
+        frame.columnconfigure(0, weight=3)
+        frame.columnconfigure(1, weight=1)
+        frame.grid_rowconfigure(0, weight=2)
+        frame.grid_rowconfigure(1, weight=1)
+        frame.grid_rowconfigure(2, weight=2)
 
-            player_1_label = tk.Label(
-                frame, text=f"{match.player_1.name} {match.player_1_points}"
-            )
-            player_2_label = tk.Label(
-                frame, text=f"{match.player_2.name} {match.player_2_points}"
-            )
+        # top: player 1
+        p1_label = ttk.Label(frame, text=f"{match.player_1.name}")
+        p1_label.grid(column=0, row=0, sticky="nw")
+        p1_score = ttk.Label(frame, text=f"{match.player_1_points}")
+        p1_score.grid(column=1, row=0, sticky="ne")
 
-            player_1_label.grid(column=0, row=0)
-            player_2_label.grid(column=0, row=1)
-            return
+        # botton: player 2
+        p2_label = ttk.Label(frame, text=f"{match.player_2.name}")
+        p2_label.grid(column=0, row=2, sticky="sw")
+        p2_score = ttk.Label(frame, text=f"{match.player_2_points}")
+        p2_score.grid(column=1, row=2, sticky="se")
+
+        # IF stage is running: buttons inbetween
+        if match.stage.state == "running":
+            buttons = ttk.Frame(frame)
+            self.match_buttons(buttons, match)
+            buttons.grid(column=0, row=1, columnspan=2, sticky="nswe")
+
+    def match_buttons(self, frame, match):
+        frame.grid_columnconfigure(0, weight=0, uniform="a")
+        frame.grid_rowconfigure(0, weight=0)
+        frame.grid_rowconfigure(1, weight=0)
+        frame.grid_rowconfigure(2, weight=0)
+        frame.grid_rowconfigure(3, weight=0)
 
         if match.state == "running":
-            frame.grid_rowconfigure(0, weight=1)
-            frame.grid_rowconfigure(1, weight=1)
-            frame.grid_rowconfigure(2, weight=1)
-            frame.grid_columnconfigure(0, weight=1)
-
             player_1_win_button = tk.Button(
                 frame,
-                text=f"{match.player_1.name}",
+                text="⬆️",
+                font=("Helvetica", 10),
                 command=lambda m=match: m.register_win(match.player_1),
             )
+
             draw_button = tk.Button(
-                frame, text="draw", command=lambda m=match: m.register_draw()
+                frame,
+                text="↕️",
+                font=("Helvetica", 10),
+                command=lambda m=match: m.register_draw(),
             )
+
             player_2_win_button = tk.Button(
                 frame,
-                text=f"{match.player_2.name}",
+                text="⬇️",
+                font=("Helvetica", 10),
                 command=lambda m=match: m.register_win(match.player_2),
             )
+
             player_1_win_button.grid(column=0, row=0)
-            draw_button.grid(column=0, row=1)
-            player_2_win_button.grid(column=0, row=2)
-            return
+            draw_button.grid(column=1, row=0)
+            player_2_win_button.grid(column=2, row=0)
 
         if match.state == "finished":
-            frame.grid_columnconfigure(0, weight=1)
-            frame.grid_columnconfigure(1, weight=1)
-            frame.grid_rowconfigure(0, weight=1)
-            frame.grid_rowconfigure(1, weight=1)
-
-            player_1_label = tk.Label(
-                frame, text=f"{match.player_1.name} {match.player_1_points}"
-            )
-            player_2_label = tk.Label(
-                frame, text=f"{match.player_2.name} {match.player_2_points}"
-            )
             reset_button = tk.Button(
-                frame, text="undo", command=lambda m=match: m.unregister_result()
+                frame,
+                text="↩️",
+                font=("Helvetica", 10),
+                command=lambda m=match: m.unregister_result(),
             )
-
-            reset_button.grid(column=0, row=0, rowspan=2)
-            player_1_label.grid(column=1, row=0)
-            player_2_label.grid(column=1, row=1)
-            return
+            reset_button.grid(column=3, row=0)
 
     def new_stage(self):
         self.tournament.advance_tournament()
+
+
+def scrollableFrame(parent):
+    root = ttk.Frame(parent)
+
+    root.grid_columnconfigure(0, weight=1)
+    root.grid_columnconfigure(1, weight=0)
+    root.grid_rowconfigure(0, weight=1)
+
+    # create canvas
+    canvas = tk.Canvas(root)
+    canvas.grid(column=0, row=0, sticky="nswe")
+
+    # create scrollbar
+    scrollbar = ttk.Scrollbar(root, orient="vertical", command=canvas.yview)
+    scrollbar.grid(column=1, row=0, sticky="ns")
+
+    # link scrollbar to canvas
+    canvas.configure(yscrollcommand=scrollbar.set)
+
+    # create scrollable frame
+    frame = ttk.Frame(canvas, padding=5)
+    frame_id = canvas.create_window((0, 0), window=frame, anchor="nw")
+    canvas.bind("<Configure>", lambda e: canvas.itemconfig(frame_id, width=e.width))
+    frame.bind(
+        "<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+    )
+
+    # canvas.bind_all("<MouseWheel>", lambda e, c=canvas: on_mousewheel(e, c))
+
+    return root, frame
+
+
+def on_mousewheel(event, canvas):
+    if not hasattr(event, "delta"):
+        return
+
+    if event.delta > 0:  # scroll up
+        canvas.yview_scroll(-1, "units")
+    if event.delta < 0:  # scroll down
+        canvas.yview_scroll(1, "units")
