@@ -8,6 +8,7 @@ class Ui_controller:
         self.tournament = tournament
         self.tournament.register_ui_callback(self.update_ui)
         self.current_widget = None
+        self.pixel = None  # needed for square buttons
         self.setup_ui()
 
     def setup_ui(self):
@@ -16,6 +17,7 @@ class Ui_controller:
         self.root.option_add("*Font", ("Helvetica", 20))
         self.root.attributes("-fullscreen", True)
         self.styles()
+        self.pixel = tk.PhotoImage()
         self.root.grid_rowconfigure(0, weight=1)
         self.root.grid_columnconfigure(0, weight=1)
 
@@ -30,7 +32,6 @@ class Ui_controller:
         style.configure("page.TFrame", relief="solid")
         style.configure("stage.TFrame", relief="solid")
         style.configure("match.TFrame", relief="solid")
-        style.configure("small.TButton", font=("Helvetica", 8))
 
     def update_ui(self):
         self.clear_frame(self.full_frame)
@@ -169,7 +170,7 @@ class Ui_controller:
         self.populate_tournament_header(header_frame)
         header_frame.grid(column=0, row=0, sticky="we")
 
-        outer_content_frame, content_frame = scrollableFrame(frame)
+        outer_content_frame, content_frame = self.scrollableFrame(frame)
         self.populate_tournament_content(content_frame)
         outer_content_frame.grid(column=0, row=1, sticky="nswe")
 
@@ -259,23 +260,35 @@ class Ui_controller:
             player_1_win_button = tk.Button(
                 frame,
                 text="⬆️",
-                font=("Helvetica", 10),
+                image=self.pixel,
+                width=25,
+                height=25,
+                compound="center",
                 command=lambda m=match: m.register_win(match.player_1),
             )
+            player_1_win_button.photo = self.pixel
 
             draw_button = tk.Button(
                 frame,
                 text="↕️",
-                font=("Helvetica", 10),
+                image=self.pixel,
+                width=25,
+                height=25,
+                compound="center",
                 command=lambda m=match: m.register_draw(),
             )
+            draw_button.photo = self.pixel
 
             player_2_win_button = tk.Button(
                 frame,
                 text="⬇️",
-                font=("Helvetica", 10),
+                image=self.pixel,
+                width=25,
+                height=25,
+                compound="center",
                 command=lambda m=match: m.register_win(match.player_2),
             )
+            player_2_win_button.photo = self.pixel
 
             player_1_win_button.grid(column=0, row=0)
             draw_button.grid(column=1, row=0)
@@ -285,51 +298,43 @@ class Ui_controller:
             reset_button = tk.Button(
                 frame,
                 text="↩️",
-                font=("Helvetica", 10),
+                image=self.pixel,
+                width=25,
+                height=25,
+                compound="center",
                 command=lambda m=match: m.unregister_result(),
             )
+            reset_button.photo = self.pixel
+
             reset_button.grid(column=3, row=0)
 
     def new_stage(self):
         self.tournament.advance_tournament()
 
+    def scrollableFrame(self, parent):
+        root = ttk.Frame(parent)
 
-def scrollableFrame(parent):
-    root = ttk.Frame(parent)
+        root.grid_columnconfigure(0, weight=1)
+        root.grid_columnconfigure(1, weight=0)
+        root.grid_rowconfigure(0, weight=1)
 
-    root.grid_columnconfigure(0, weight=1)
-    root.grid_columnconfigure(1, weight=0)
-    root.grid_rowconfigure(0, weight=1)
+        # create canvas
+        canvas = tk.Canvas(root)
+        canvas.grid(column=0, row=0, sticky="nswe")
 
-    # create canvas
-    canvas = tk.Canvas(root)
-    canvas.grid(column=0, row=0, sticky="nswe")
+        # create scrollbar
+        scrollbar = ttk.Scrollbar(root, orient="vertical", command=canvas.yview)
+        scrollbar.grid(column=1, row=0, sticky="ns")
 
-    # create scrollbar
-    scrollbar = ttk.Scrollbar(root, orient="vertical", command=canvas.yview)
-    scrollbar.grid(column=1, row=0, sticky="ns")
+        # link scrollbar to canvas
+        canvas.configure(yscrollcommand=scrollbar.set)
 
-    # link scrollbar to canvas
-    canvas.configure(yscrollcommand=scrollbar.set)
+        # create scrollable frame
+        frame = ttk.Frame(canvas, padding=5)
+        frame_id = canvas.create_window((0, 0), window=frame, anchor="nw")
+        canvas.bind("<Configure>", lambda e: canvas.itemconfig(frame_id, width=e.width))
+        frame.bind(
+            "<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
 
-    # create scrollable frame
-    frame = ttk.Frame(canvas, padding=5)
-    frame_id = canvas.create_window((0, 0), window=frame, anchor="nw")
-    canvas.bind("<Configure>", lambda e: canvas.itemconfig(frame_id, width=e.width))
-    frame.bind(
-        "<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-    )
-
-    # canvas.bind_all("<MouseWheel>", lambda e, c=canvas: on_mousewheel(e, c))
-
-    return root, frame
-
-
-def on_mousewheel(event, canvas):
-    if not hasattr(event, "delta"):
-        return
-
-    if event.delta > 0:  # scroll up
-        canvas.yview_scroll(-1, "units")
-    if event.delta < 0:  # scroll down
-        canvas.yview_scroll(1, "units")
+        return root, frame
